@@ -78,14 +78,6 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
         return rolloutGreedyProbability;
     }
 
-    /// getHeuristic
-    ///
-    /// Returns the heuristic configuration.
-    ///
-    /// @return the heuristic configuration
-    HeuristicConfiguration getHeuristic() {
-        return heuristic;
-    }
 
     /// getPlayerId
     ///

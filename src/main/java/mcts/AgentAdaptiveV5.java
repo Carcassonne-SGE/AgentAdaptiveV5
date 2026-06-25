@@ -149,21 +149,4 @@ public class AgentAdaptiveV5 extends AbstractDeterminizedEnsembleAgent {
         return super.computeNextAction(game, computationTime, timeUnit);
     }
 
-    /// getHeuristic
-    ///
-    /// Returns the heuristic configuration.
-    ///
-    /// @return the heuristic configuration
-    HeuristicConfiguration getHeuristic() {
-        return heuristic;
-    }
-
-    /// getRolloutGreedyProbability
-    ///
-    /// Returns the rollout greedy probability.
-    ///
-    /// @return the rollout greedy probability
-    float getRolloutGreedyProbability() {
-        return rolloutGreedyProbability;
-    }
 }
