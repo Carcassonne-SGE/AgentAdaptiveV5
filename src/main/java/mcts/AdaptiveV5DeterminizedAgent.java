@@ -201,7 +201,7 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
         }
 
         // Get prior scores for all legal actions
-        float[] priors = computePriors(state, actions);
+        float[] priors = HeuristicManager.computePriors(state, actions, heuristic);
         int matchingIndex = findMatchingIndex(actions, actionValue);
 
         if (matchingIndex < 0) {
@@ -235,36 +235,6 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
         return (float) (chosenOrWorseWeight / totalWeight);
     }
 
-    /// computePriors
-    ///
-    /// Computes the heuristic prior scores for all possible actions in the given state.
-    ///
-    /// @param state the current state
-    /// @param actions the set of legal actions
-    /// @return an array of float prior scores
-    private float[] computePriors(State state, ActionSet actions) {
-        float[] priors = new float[actions.size()];
-        int cachedPositionRotation = Integer.MIN_VALUE;
-        float cachedTileScore = 0f;
-
-        for (int i = 0; i < actions.size(); i++) {
-            int candidateAction = actions.get(i);
-            // Unpack coordinate and rotation fields
-            int x = CarcassonneActionLayoutBit.getX(candidateAction);
-            int y = CarcassonneActionLayoutBit.getY(candidateAction);
-            int rotation = CarcassonneActionLayoutBit.getRotation(candidateAction);
-            int positionRotationKey = (x << 10) ^ (y << 2) ^ rotation;
-
-            // Cache the tile placement score component to avoid redundant evaluation across areas/meeple choices
-            if (positionRotationKey != cachedPositionRotation) {
-                cachedPositionRotation = positionRotationKey;
-                cachedTileScore = HeuristicManager.tilePlacementScore(state, x, y, rotation, heuristic.positionHeuristik());
-            }
-
-            priors[i] = HeuristicManager.computePrior(state, candidateAction, cachedTileScore, heuristic);
-        }
-        return priors;
-    }
 
     /// findMatchingIndex
     ///

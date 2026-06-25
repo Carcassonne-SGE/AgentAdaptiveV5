@@ -42,7 +42,7 @@ public class DeterminizedActionNodePUCTV5 extends AbstractPuctActionNode<Determi
 
     /// getSelectionScore
     ///
-    /// Computes the selection score based on UCB and PUCT heuristic prior.
+    /// Computes the selection score based on UCB and PUCT heuristic prior. With the
     ///
     /// @return the selection score
     @Override
