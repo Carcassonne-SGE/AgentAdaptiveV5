@@ -25,15 +25,15 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.SGE</groupId>
+            <groupId>com.github.Carcassonne-SGE</groupId>
             <artifactId>Abstract-Agent</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>main-SNAPSHOT</version>
         </dependency>
 
         <dependency>
-            <groupId>org.SGE</groupId>
+            <groupId>com.github.Carcassonne-SGE</groupId>
             <artifactId>Carcassonne-Environment</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>main-SNAPSHOT</version>
         </dependency>
 
         <dependency>

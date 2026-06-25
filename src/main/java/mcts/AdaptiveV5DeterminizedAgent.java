@@ -18,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 /// AdaptiveV5DeterminizedAgent
 ///
 /// Internal determinized sub-agent used by AgentAdaptiveV5 ensemble searches.
+/// performs the goognes modeling and modified search
+/// 
 class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<DeterminizedActionNodePUCTV5> {
     private static final float GOODNESS_PRIOR_MEAN = 1.0f;
     private static final int GOODNESS_PRIOR_WEIGHT = 2;
@@ -38,63 +40,17 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
     /// @param rand the random number generator
     /// @param config the configuration settings for the agent
     /// @param heuristic the heuristic configuration used for search and evaluation
-    /// @param rolloutGreedyProbability the probability of choosing a greedy heuristic action during rollouts
+    /// @param rolloutGreedyProbability the probability of choosing a greedy
+    /// heuristic action during rollouts
     AdaptiveV5DeterminizedAgent(
             Logger logger,
             Random rand,
             AbstractAgentConfiguration config,
             HeuristicConfiguration heuristic,
-            float rolloutGreedyProbability
-    ) {
+            float rolloutGreedyProbability) {
         super(logger, config, rand);
         this.heuristic = heuristic == null ? HeuristicManager.createDefaultHeuristic() : heuristic;
         this.rolloutGreedyProbability = rolloutGreedyProbability;
-    }
-
-    /// getGoodness
-    ///
-    /// Returns the partner agent's evaluated goodness value.
-    ///
-    /// @return the partner goodness value
-    float getGoodness() {
-        return goodness;
-    }
-
-    /// setGoodness
-    ///
-    /// Sets the partner agent's evaluated goodness value.
-    ///
-    /// @param goodness the new goodness value
-    void setGoodness(float goodness) {
-        this.goodness = goodness;
-    }
-
-    /// getRolloutGreedyProbability
-    ///
-    /// Returns the rollout greedy probability.
-    ///
-    /// @return the rollout greedy probability
-    float getRolloutGreedyProbability() {
-        return rolloutGreedyProbability;
-    }
-
-
-    /// getPlayerId
-    ///
-    /// Returns the player ID of this agent.
-    ///
-    /// @return the player ID
-    int getPlayerId() {
-        return playerId;
-    }
-
-    /// setPlayerId
-    ///
-    /// Sets the player ID of this agent.
-    ///
-    /// @param playerId the player ID
-    void setPlayerId(int playerId) {
-        this.playerId = playerId;
     }
 
     /// resetPartnerModel
@@ -110,7 +66,8 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
 
     /// updateGoodness
     ///
-    /// Processes action records to evaluate the partner agent's actions and update its goodness score.
+    /// Processes action records to evaluate the partner agent actions and update
+    /// its goodness score.
     ///
     /// @param game the Carcassonne game instance
     /// @param computationTime the search budget duration
@@ -118,7 +75,6 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
     void updateGoodness(CarcassonneGame game, long computationTime, TimeUnit timeUnit) {
         List<at.ac.tuwien.ifs.sge.game.ActionRecord<CarcassonneAction>> records = game.getActionRecords();
 
-        // Initialize history tracking state starting from game start configuration
         if (historyState == null) {
             historyState = new State(game.getBoard().getGameConfig());
             lastEvaluatedIndex = 0;
@@ -126,11 +82,9 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
             partnerLikelihoodSum = 0.0f;
         }
 
-        // Advance historyState action-by-action to catch up with newly made moves
         for (int idx = lastEvaluatedIndex; idx < records.size(); idx++) {
             at.ac.tuwien.ifs.sge.game.ActionRecord<CarcassonneAction> record = records.get(idx);
             CarcassonneAction action = record.getAction();
-            // Evaluate only valid game-play actions made by the partner (not ourselves)
             if (action.isAction() && record.getPlayer() != playerId) {
                 evaluatePartnerAction(action, computationTime, timeUnit);
             }
@@ -138,28 +92,26 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
         }
 
         lastEvaluatedIndex = records.size();
-        // If the partner has made no actions yet, assume maximum goodness default
         if (partnerActionCount == 0) {
             goodness = 1.0f;
             return;
         }
 
-        // Calculate the raw average likelihood of partner's moves under our heuristic policy model
-        float averageLikelihood = partnerLikelihoodSum / partnerActionCount;
-        // Blend raw average with a prior mean to obtain an optimistic estimate (avoiding early pessimism)
-        float optimisticAverage = (((partnerLikelihoodSum + GOODNESS_PRIOR_WEIGHT * GOODNESS_PRIOR_MEAN)  / (partnerActionCount + GOODNESS_PRIOR_WEIGHT))+averageLikelihood)/2.0f;
-        // Apply thresholding and scaling: high compliance with policy yields goodness close to 1.0
-        if(optimisticAverage > 0.4){
-            goodness = Math.min(1.0f,0.4f+ optimisticAverage * 1.6f);
-        }
-        else{
-            goodness = Math.max(0, optimisticAverage);
+        float rawAverage = partnerLikelihoodSum / partnerActionCount;
+        float priorAverage = (partnerLikelihoodSum + GOODNESS_PRIOR_WEIGHT * GOODNESS_PRIOR_MEAN)
+                / (partnerActionCount + GOODNESS_PRIOR_WEIGHT);
+        float optimisticAverage = (priorAverage + rawAverage) / 2.0f;
+        if (optimisticAverage > 0.4f) {
+            goodness = Math.min(1.0f, 0.4f + optimisticAverage * 1.6f);
+        } else {
+            goodness = Math.max(0f, optimisticAverage);
         }
     }
 
     /// evaluatePartnerAction
     ///
-    /// Evaluates a single action taken by the partner agent, computing its likelihood
+    /// Evaluates a single action taken by the partner agent computing its
+    /// likelihood
     /// under our heuristic policy model.
     ///
     /// @param action the action taken by the partner
@@ -170,10 +122,7 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
         if (actions.isEmpty()) {
             return;
         }
-
-        // Evaluate the probability/likelihood of the partner's chosen action
         float likelihood = evaluateHeuristicPolicyLikelihood(historyState, actions, action.getValue());
-
         partnerActionCount++;
         partnerLikelihoodSum += likelihood;
     }
@@ -192,15 +141,11 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
             return 1.0f;
         }
 
-        // Get prior scores for all legal actions
         float[] priors = HeuristicManager.computePriors(state, actions, heuristic);
         int matchingIndex = findMatchingIndex(actions, actionValue);
-
         if (matchingIndex < 0) {
             return 0f;
         }
-
-        // Shift priors so that the lowest score acts as 0 (relative differences matter)
         float min = Float.POSITIVE_INFINITY;
         for (float prior : priors) {
             min = Math.min(min, prior);
@@ -210,7 +155,6 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
         double chosenOrWorseWeight = 0.0;
         float chosenPrior = priors[matchingIndex];
 
-        // Sum weights and compute the cumulative rank/probability weight of the partner's action
         for (float prior : priors) {
             double weight = prior - min;
             totalWeight += weight;
@@ -218,15 +162,12 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
                 chosenOrWorseWeight += weight;
             }
         }
-
         if (totalWeight <= 0.0) {
             return 1.0f;
         }
 
-        // Returns proportion of action weight space that is as bad or worse than the selected action
         return (float) (chosenOrWorseWeight / totalWeight);
     }
-
 
     /// findMatchingIndex
     ///
@@ -234,7 +175,7 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
     ///
     /// @param actions the set of legal actions
     /// @param actionValue the action value to locate
-    /// @return the index, or -1 if not found
+    /// @return the index or -1 if not found
     private int findMatchingIndex(ActionSet actions, int actionValue) {
         for (int i = 0; i < actions.size(); i++) {
             if (actions.get(i) == actionValue) {
@@ -242,15 +183,6 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
             }
         }
         return -1;
-    }
-
-    /// rolloutCount
-    ///
-    /// Returns the number of rollouts to perform per simulation.
-    ///
-    /// @return the rollout count
-    int rolloutCount() {
-        return config.rollouts();
     }
 
     /// rootFactory
@@ -273,7 +205,53 @@ class AdaptiveV5DeterminizedAgent extends AbstractDeterminizedAgent<Determinized
     /// @param checkpoint the checkpointed state of the child node
     /// @return the constructed child node
     @Override
-    public DeterminizedActionNodePUCTV5 childFactory(DeterminizedActionNodePUCTV5 parent, int action, State checkpoint) {
+    public DeterminizedActionNodePUCTV5 childFactory(DeterminizedActionNodePUCTV5 parent, int action,
+            State checkpoint) {
         return new DeterminizedActionNodePUCTV5(this, parent, action, checkpoint, 0f, config.c(), heuristic);
     }
+
+    /// getGoodness
+    ///
+    /// Returns the partner agents evaluated goodness value.
+    float getGoodness() {
+        return goodness;
+    }
+
+    /// setGoodness
+    ///
+    /// Sets the partner agent evaluated goodness value.
+    void setGoodness(float goodness) {
+        this.goodness = goodness;
+    }
+
+    /// getRolloutGreedyProbability
+    ///
+    /// Returns the rollout greedy probability.
+    float getRolloutGreedyProbability() {
+        return rolloutGreedyProbability;
+    }
+
+    /// getPlayerId
+    ///
+    /// Returns the player ID of this agent.
+    int getPlayerId() {
+        return playerId;
+    }
+
+    /// setPlayerId
+    ///
+    /// Sets the player ID of this agent.
+    void setPlayerId(int playerId) {
+        this.playerId = playerId;
+    }
+
+    /// rolloutCount
+    ///
+    /// Returns the number of rollouts to perform per simulation.
+    ///
+    /// @return the rollout count
+    int rolloutCount() {
+        return config.rollouts();
+    }
+
 }

@@ -15,7 +15,8 @@ import java.util.concurrent.TimeUnit;
 /// AgentAdaptiveV5
 ///
 /// An adaptive ensemble agent that adjusts its search strategy based on the evaluated
-/// skill/goodness of the opponent.
+/// skill/goodness of the opponent. This class is just the wrapper or the esamble for teh actual mcts
+/// agent implementaiton
 public class AgentAdaptiveV5 extends AbstractDeterminizedEnsembleAgent {
     public static final int ENSEMBLE_SIZE = 5;
 
@@ -26,42 +27,24 @@ public class AgentAdaptiveV5 extends AbstractDeterminizedEnsembleAgent {
     ///
     /// Default constructor creating an agent with no logger.
     public AgentAdaptiveV5() {
-        this((Logger) null);
+        this(null, null, null, null, 0.4f);
     }
 
     /// AgentAdaptiveV5
-    ///
-    /// Constructor creating an agent with a logger and default configuration.
     ///
     /// @param logger the logger instance
     public AgentAdaptiveV5(Logger logger) {
-        this(
-                logger,
-                new Random(99),
-                new AbstractAgentConfiguration(1.4f, 20, 0.2f, 5),
-                HeuristicManager.createDefaultHeuristic(),
-                0.4f
-        );
+        this(logger, null, null, null, 0.4f);
     }
 
     /// AgentAdaptiveV5
-    ///
-    /// Constructor creating an agent with a specific random generator and default configuration.
     ///
     /// @param rand the random number generator
     public AgentAdaptiveV5(Random rand) {
-        this(
-                null,
-                rand,
-                new AbstractAgentConfiguration(1.4f, 20, 0.2f, 5),
-                HeuristicManager.createDefaultHeuristic(),
-                0.4f
-        );
+        this(null, rand, null, null, 0.4f);
     }
 
     /// AgentAdaptiveV5
-    ///
-    /// Constructor creating an agent with specified configurations and defaults for rollout probability.
     ///
     /// @param logger the logger instance
     /// @param rand the random number generator
@@ -71,14 +54,11 @@ public class AgentAdaptiveV5 extends AbstractDeterminizedEnsembleAgent {
             Logger logger,
             Random rand,
             AbstractAgentConfiguration config,
-            HeuristicConfiguration heuristic
-    ) {
+            HeuristicConfiguration heuristic) {
         this(logger, rand, config, heuristic, 0.4f);
     }
 
     /// AgentAdaptiveV5
-    ///
-    /// Constructor creating an agent with full custom configurations.
     ///
     /// @param logger the logger instance
     /// @param rand the random number generator
@@ -90,28 +70,23 @@ public class AgentAdaptiveV5 extends AbstractDeterminizedEnsembleAgent {
             Random rand,
             AbstractAgentConfiguration config,
             HeuristicConfiguration heuristic,
-            float rolloutGreedyProbability
-    ) {
+            float rolloutGreedyProbability) {
         super(
                 logger,
-                config,
+                config == null ? new AbstractAgentConfiguration(1.4f, 20, 0.2f, 5) : config,
                 ENSEMBLE_SIZE,
                 (subLogger, subConfig, subRand) -> new AdaptiveV5DeterminizedAgent(
                         subLogger,
                         subRand,
                         subConfig,
-                        heuristic,
-                        rolloutGreedyProbability
-                ),
-                rand
-        );
+                        heuristic == null ? HeuristicManager.createDefaultHeuristic() : heuristic,
+                        rolloutGreedyProbability),
+                rand == null ? new Random(99) : rand);
         this.heuristic = heuristic == null ? HeuristicManager.createDefaultHeuristic() : heuristic;
         this.rolloutGreedyProbability = rolloutGreedyProbability;
     }
 
     /// setUp
-    ///
-    /// Sets up the ensemble agent, player ID, and resets partner models for sub-agents.
     ///
     /// @param numberOfPlayers the total number of players
     /// @param playerNumber the player ID assigned to this agent
@@ -127,8 +102,8 @@ public class AgentAdaptiveV5 extends AbstractDeterminizedEnsembleAgent {
 
     /// computeNextAction
     ///
-    /// Evaluates and updates the opponent/partner's goodness model, shares it among
-    /// ensemble sub-agents, and computes the next best action.
+    /// Evaluates and updates the partners goodness model, shares it among
+    /// ensemble sub-agents and computes the next best action.
     ///
     /// @param game the Carcassonne game instance
     /// @param computationTime the search budget duration
